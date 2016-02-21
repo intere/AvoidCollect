@@ -5,6 +5,22 @@
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "36F66B5F1C78D1A10051273E"
+               BuildableName = "AvoidCollect.app"
+               BlueprintName = "AvoidCollect"
+               ReferencedContainer = "container:AvoidCollect.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
@@ -12,7 +28,36 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "36F66B771C78D1A10051273E"
+               BuildableName = "AvoidCollectTests.xctest"
+               BlueprintName = "AvoidCollectTests"
+               ReferencedContainer = "container:AvoidCollect.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "36F66B821C78D1A10051273E"
+               BuildableName = "AvoidCollectUITests.xctest"
+               BlueprintName = "AvoidCollectUITests"
+               ReferencedContainer = "container:AvoidCollect.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "36F66B5F1C78D1A10051273E"
+            BuildableName = "AvoidCollect.app"
+            BlueprintName = "AvoidCollect"
+            ReferencedContainer = "container:AvoidCollect.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -26,6 +71,16 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "36F66B5F1C78D1A10051273E"
+            BuildableName = "AvoidCollect.app"
+            BlueprintName = "AvoidCollect"
+            ReferencedContainer = "container:AvoidCollect.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -35,6 +90,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "36F66B5F1C78D1A10051273E"
+            BuildableName = "AvoidCollect.app"
+            BlueprintName = "AvoidCollect"
+            ReferencedContainer = "container:AvoidCollect.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
