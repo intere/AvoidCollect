@@ -8,16 +8,17 @@
 
 import SpriteKit
 
-class GameScene: SKScene, SKPhysicsContactDelegate {
+class GameScene: SKScene {
     var player: SKSpriteNode?
     var squareCollect: SKSpriteNode?
     var circleAvoid: SKShapeNode?
     var stars: SKSpriteNode?
     var lblScore: SKLabelNode?
     var lblMain: SKLabelNode?
-    
-    let squareSpeed = 1.5
-    let circleSpeed = 2.0
+    var level: Level = Level.createLevel(4)
+    var circleCount = 0
+    var squareCount = 0
+
     let hudColor = UIColor.whiteColor()
     let backColor = UIColor(red: 20/255, green: 30/255, blue: 20/255, alpha: 1)
     let circleColor = UIColor(red: 60/255, green: 120/255, blue: 50/255, alpha: 1)
@@ -26,8 +27,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let playerColor = UIColor.whiteColor()
     
     var isAlive = true
+    var isLevelComplete = false
     var score = 0
-    
+}
+
+// MARK: - Scene Methods
+extension GameScene {
     override func didMoveToView(view: SKView) {
         physicsWorld.contactDelegate = self
         backgroundColor = backColor
@@ -62,9 +67,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
-    
-    // MARK: - Helper Method
-    
+}
+
+
+// MARK: - Spawn Methods
+extension GameScene {
     func spawnPlayer() {
         player = SKSpriteNode(color: playerColor, size: CGSize(width: 50, height: 50))
         if let player = player {
@@ -90,35 +97,52 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             squareCollect.physicsBody?.dynamic = true
             squareCollect.physicsBody?.allowsRotation = false
             
-            let moveForward = SKAction.moveToY(-100, duration: squareSpeed)
+            addChild(squareCollect)
+            ++squareCount
+
+            let moveForward = SKAction.moveToY(-100, duration: level.squareSpeed)
             let destroy = SKAction.removeFromParent()
             squareCollect.runAction(SKAction.sequence([moveForward, destroy]))
-            
-            addChild(squareCollect)
         }
     }
     
     func spawnCircleAvoid() {
-        let radius: CGFloat = 15
-        circleAvoid = SKShapeNode(circleOfRadius: radius)
-        if let circleAvoid = circleAvoid {
-            circleAvoid.strokeColor = UIColor.clearColor()
-            circleAvoid.fillColor = circleColor
-            circleAvoid.position = CGPoint(x: Double(arc4random_uniform(UInt32(CGRectGetMaxX(frame)))), y: Double(CGRectGetMaxY(frame) + radius * 4))
-            
-            circleAvoid.physicsBody = SKPhysicsBody(circleOfRadius: radius)
-            circleAvoid.physicsBody?.affectedByGravity = false
-            circleAvoid.physicsBody?.categoryBitMask = PhysicsCategory.circleAvoid
-            circleAvoid.physicsBody?.contactTestBitMask = PhysicsCategory.player
-            circleAvoid.physicsBody?.collisionBitMask = PhysicsCategory.player
-            circleAvoid.physicsBody?.dynamic = true
-            circleAvoid.physicsBody?.allowsRotation = false
-            
-            let moveForward = SKAction.moveToY(-100, duration: circleSpeed)
-            let destroy = SKAction.removeFromParent()
-            circleAvoid.runAction(SKAction.sequence([moveForward, destroy]))
-            
-            addChild(circleAvoid)
+        if circleCount < level.circlesToDodge {
+            let radius: CGFloat = 15
+            circleAvoid = SKShapeNode(circleOfRadius: radius)
+            if let circleAvoid = circleAvoid {
+                circleAvoid.strokeColor = UIColor.clearColor()
+                circleAvoid.fillColor = circleColor
+                let xPosition = CGFloat(arc4random_uniform(UInt32(CGRectGetMaxX(frame))))
+
+                circleAvoid.position = CGPoint(x: xPosition, y: CGRectGetMaxY(frame) + radius)
+                
+                circleAvoid.physicsBody = SKPhysicsBody(circleOfRadius: radius)
+                circleAvoid.physicsBody?.affectedByGravity = false
+                circleAvoid.physicsBody?.categoryBitMask = PhysicsCategory.circleAvoid
+                circleAvoid.physicsBody?.contactTestBitMask = PhysicsCategory.player
+                circleAvoid.physicsBody?.collisionBitMask = PhysicsCategory.player
+                circleAvoid.physicsBody?.dynamic = true
+                circleAvoid.physicsBody?.allowsRotation = false
+                
+                addChild(circleAvoid)
+                ++circleCount
+                // TODO: Rip out debugging output
+                print("Spawned circle \(circleCount) of \(level.circlesToDodge)")
+
+                let moveForward = SKAction.moveToY(-100, duration: level.circleSpeed)
+                let destroy = SKAction.removeFromParent()
+                circleAvoid.runAction(SKAction.sequence([moveForward, destroy]))
+            }
+        } else if !isLevelComplete && isAlive {
+            isLevelComplete = true
+            let wait = SKAction.waitForDuration(level.circleSpeed)
+            let levelCompleteCheck = SKAction.runBlock {
+                if self.isAlive {
+                    self.levelComplete()
+                }
+            }
+            runAction(SKAction.sequence([wait, levelCompleteCheck]))
         }
     }
     
@@ -178,9 +202,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("ERROR: Couldn't find explosion")
         }
     }
-    
+}
+
+// MARK: - Timer Methods
+extension GameScene {
     func squareSpawnTimer() {
-        let squareTimer = SKAction.waitForDuration(1)
+        let squareTimer = SKAction.waitForDuration(level.squareTimer)
         let spawn = SKAction.runBlock {
             self.spawnSquareCollect()
         }
@@ -189,7 +216,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func circleSpawnTimer() {
-        let circleTimer = SKAction.waitForDuration(0.5)
+        let circleTimer = SKAction.waitForDuration(level.circleTimer)
         let spawn = SKAction.runBlock {
             self.spawnCircleAvoid()
         }
@@ -205,7 +232,51 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let sequence = SKAction.sequence([starsTimer, spawn])
         runAction(SKAction.repeatActionForever(sequence))
     }
-    
+}
+
+// MARK: - SKPhysicsContactDelegate Methods
+extension GameScene: SKPhysicsContactDelegate {
+    func didBeginContact(contact: SKPhysicsContact) {
+        let firstBody = contact.bodyA
+        let secondBody = contact.bodyB
+
+        // Player / Square Collect collision
+        if (firstBody.categoryBitMask == PhysicsCategory.player && secondBody.categoryBitMask == PhysicsCategory.squareCollect) || (firstBody.categoryBitMask == PhysicsCategory.squareCollect && secondBody.categoryBitMask == PhysicsCategory.player) {
+            playerSquareCollision(firstBody.node as? SKSpriteNode , squareTemp: secondBody.node as? SKSpriteNode)
+        } else if (firstBody.categoryBitMask == PhysicsCategory.player && secondBody.categoryBitMask == PhysicsCategory.circleAvoid) || (firstBody.categoryBitMask == PhysicsCategory.circleAvoid && secondBody.categoryBitMask == PhysicsCategory.player) {
+
+            if let circleAvoid = firstBody.node as? SKShapeNode, player = secondBody.node as? SKSpriteNode {
+                spawnExplosion(circleAvoid)
+                playerCircleCollision(player, circleTemp: circleAvoid)
+            } else if let player = firstBody.node as? SKSpriteNode, circleAvoid = secondBody.node as? SKShapeNode {
+                spawnExplosion(circleAvoid)
+                playerCircleCollision(player, circleTemp: circleAvoid)
+            }
+        }
+    }
+
+    // MARK: Contact Handler Methods
+
+    func playerSquareCollision(playerTemp: SKSpriteNode?, squareTemp: SKSpriteNode?) {
+        if let _ = playerTemp, squareTemp = squareTemp {
+            squareTemp.removeFromParent()
+            score++
+            updateScore()
+        }
+    }
+
+    func playerCircleCollision(playerTemp: SKSpriteNode, circleTemp: SKShapeNode) {
+        if let lblMain = lblMain {
+            lblMain.alpha = 1
+            lblMain.text = "Game Over"
+            isAlive = false
+            waitThenMoveToTitleScene()
+        }
+    }
+}
+
+// MARK: - Helper Methods
+extension GameScene {
     func updateScore() {
         if let lblScore = lblScore {
             lblScore.text = "\(score)"
@@ -224,50 +295,43 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let sequence = SKAction.sequence([wait, transition])
         runAction(SKAction.repeatAction(sequence, count: 1))
     }
-    
-    // MARK: - SKPhysicsContactDelegate Methods
-    
-    func didBeginContact(contact: SKPhysicsContact) {
-        let firstBody = contact.bodyA
-        let secondBody = contact.bodyB
-        
-        // Player / Square Collect collision
-        if (firstBody.categoryBitMask == PhysicsCategory.player && secondBody.categoryBitMask == PhysicsCategory.squareCollect) || (firstBody.categoryBitMask == PhysicsCategory.squareCollect && secondBody.categoryBitMask == PhysicsCategory.player) {
-            playerSquareCollision(firstBody.node as? SKSpriteNode , squareTemp: secondBody.node as? SKSpriteNode)
-        } else if (firstBody.categoryBitMask == PhysicsCategory.player && secondBody.categoryBitMask == PhysicsCategory.circleAvoid) || (firstBody.categoryBitMask == PhysicsCategory.circleAvoid && secondBody.categoryBitMask == PhysicsCategory.player) {
 
-            if let circleAvoid = firstBody.node as? SKShapeNode, player = secondBody.node as? SKSpriteNode {
-                spawnExplosion(circleAvoid)
-                playerCircleCollision(player, circleTemp: circleAvoid)
-            } else if let player = firstBody.node as? SKSpriteNode, circleAvoid = secondBody.node as? SKShapeNode {
-                spawnExplosion(circleAvoid)
-                playerCircleCollision(player, circleTemp: circleAvoid)
-
-            }
-        }
-    }
-    
-    // MARK: Contact Handler Methods
-    
-    func playerSquareCollision(playerTemp: SKSpriteNode?, squareTemp: SKSpriteNode?) {
-        if let _ = playerTemp, squareTemp = squareTemp {
-            squareTemp.removeFromParent()
-            score++
-            updateScore()
-        }
-    }
-    
-    func playerCircleCollision(playerTemp: SKSpriteNode, circleTemp: SKShapeNode) {
+    func levelComplete() {
+        print("Level Complete")
         if let lblMain = lblMain {
             lblMain.alpha = 1
-            lblMain.text = "Game Over"
-            isAlive = false
-            waitThenMoveToTitleScene()
+            lblMain.text = "Level \(level.number) Complete"
+
+            level = Level.createLevel(level.number + 1)
+
+            let wait = SKAction.waitForDuration(2)
+            let levelIntroAction = SKAction.runBlock {
+                lblMain.text = "Level \(self.level.number)"
+            }
+            let wait2 = SKAction.waitForDuration(1)
+            let levelStartAction = SKAction.runBlock {
+                lblMain.text = "Start!"
+            }
+            let wait3 = SKAction.waitForDuration(1)
+            let beginNextLevelAction = SKAction.runBlock {
+                lblMain.alpha = 0
+                self.beginNextLevel()
+            }
+
+            runAction(SKAction.sequence([wait, levelIntroAction, wait2, levelStartAction, wait3, beginNextLevelAction]))
         }
     }
-    
-    // MARK: - Structures
-    
+
+    func beginNextLevel() {
+        isLevelComplete = false
+        isAlive = true
+        circleCount = 0
+        squareCount = 0
+    }
+}
+
+// MARK: - Structures
+extension GameScene {
     struct PhysicsCategory {
         static let player: UInt32 = 1
         static let squareCollect: UInt32 = 2 << 0
